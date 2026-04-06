@@ -1,17 +1,14 @@
 # `@sanity-labs/sdk-comments`
 
-React hooks and action APIs for Sanetti comments.
+React hooks and action APIs for CRUD actions with Sanity comments inside of a Sanity SDK app.
 
 This is the public comments package for apps that already use
 [`@sanity/sdk-react`](https://reference.sanity.io/_sanity/sdk-react).
 
-For a minimal end-to-end SDK app setup that combines runtime config, tasks, and
-comments, see [`docs/sdk-comments-tasks-app-quickstart.md`](../../docs/sdk-comments-tasks-app-quickstart.md).
-
 ## Installation
 
 ```bash
-pnpm add @sanity-labs/sdk-addon-dataset-runtime @sanity-labs/sdk-comments @sanity/sdk-react react react-dom
+pnpm add @sanity-labs/sdk-addon-dataset-runtime @sanity-labs/sdk-comments
 ```
 
 Peer dependencies:
