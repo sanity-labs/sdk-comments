@@ -25,16 +25,20 @@ Peer dependencies:
 ### Provider-Based Runtime
 
 ```tsx
-import {AddonDatasetRuntimeProvider} from '@sanity-labs/sdk-addon-dataset-runtime'
-import {useApplyCommentActions, useDocumentComments, useTaskComments} from '@sanity-labs/sdk-comments'
+import { AddonDatasetRuntimeProvider } from "@sanity-labs/sdk-addon-dataset-runtime";
+import {
+  useApplyCommentActions,
+  useDocumentComments,
+  useTaskComments,
+} from "@sanity-labs/sdk-comments";
 
 function CommentsPanel() {
-  const documentComments = useDocumentComments({documentId: 'article-123'})
-  const taskComments = useTaskComments({taskId: 'task-123'})
+  const documentComments = useDocumentComments({ documentId: "article-123" });
+  const taskComments = useTaskComments({ taskId: "task-123" });
   const applyCommentActions = useApplyCommentActions({
-    currentUserId: 'resource-user-1',
-    studioBaseUrl: 'https://www.sanity.io/your-studio-base',
-  })
+    currentUserId: "resource-user-1",
+    studioBaseUrl: "https://www.sanity.io/your-studio-base",
+  });
 
   return (
     <button
@@ -42,20 +46,20 @@ function CommentsPanel() {
         applyCommentActions.createTaskComment({
           message: [
             {
-              _key: 'b1',
-              _type: 'block',
-              children: [{_key: 's1', _type: 'span', text: 'Looks good'}],
+              _key: "b1",
+              _type: "block",
+              children: [{ _key: "s1", _type: "span", text: "Looks good" }],
             },
           ],
-          taskId: 'task-123',
-          taskStudioUrl: '/intent/edit/id=task-123',
-          taskTitle: 'Review homepage headline',
+          taskId: "task-123",
+          taskStudioUrl: "/intent/edit/id=task-123",
+          taskTitle: "Review homepage headline",
         })
       }
     >
       {documentComments.comments.length + taskComments.comments.length} comments
     </button>
-  )
+  );
 }
 
 <AddonDatasetRuntimeProvider
@@ -66,7 +70,7 @@ function CommentsPanel() {
   workspaceTitle="News and Media"
 >
   <CommentsPanel />
-</AddonDatasetRuntimeProvider>
+</AddonDatasetRuntimeProvider>;
 ```
 
 ### Direct Configuration
@@ -76,29 +80,33 @@ runtime values, but it is not required. You can pass runtime values directly to
 the hooks instead:
 
 ```ts
-import {useApplyCommentActions, useDocumentComments, useTaskComments} from '@sanity-labs/sdk-comments'
+import {
+  useApplyCommentActions,
+  useDocumentComments,
+  useTaskComments,
+} from "@sanity-labs/sdk-comments";
 
 const documentComments = useDocumentComments({
-  addonDataset: 'production-comments',
-  documentId: 'article-123',
-  projectId: 'myProjectId',
-})
+  addonDataset: "production-comments",
+  documentId: "article-123",
+  projectId: "myProjectId",
+});
 
 const taskComments = useTaskComments({
-  addonDataset: 'production-comments',
-  projectId: 'myProjectId',
-  taskId: 'task-123',
-})
+  addonDataset: "production-comments",
+  projectId: "myProjectId",
+  taskId: "task-123",
+});
 
 const applyCommentActions = useApplyCommentActions({
-  addonDataset: 'production-comments',
-  contentDataset: 'production',
-  currentUserId: 'resource-user-1',
-  projectId: 'myProjectId',
-  studioBaseUrl: 'https://www.sanity.io/your-studio-base',
-  workspaceId: 'news_and_media',
-  workspaceTitle: 'News and Media',
-})
+  addonDataset: "production-comments",
+  contentDataset: "production",
+  currentUserId: "resource-user-1",
+  projectId: "myProjectId",
+  studioBaseUrl: "https://www.sanity.io/your-studio-base",
+  workspaceId: "news_and_media",
+  workspaceTitle: "News and Media",
+});
 ```
 
 `currentUserId` should be your app's resource-user identifier, not just any
@@ -140,13 +148,13 @@ created or updated is a comment, including a comment attached to a task, use
 To build message payloads from plain text, use `buildMessageFromPlainText()`:
 
 ```ts
-const message = buildMessageFromPlainText('Looks good to me')
+const message = buildMessageFromPlainText("Looks good to me");
 
 await applyCommentActions.createTaskComment({
   message,
-  taskId: 'task-123',
-  taskTitle: 'Review homepage headline',
-})
+  taskId: "task-123",
+  taskTitle: "Review homepage headline",
+});
 ```
 
 ## Studio URL Configuration
@@ -170,17 +178,3 @@ This package intentionally does not ship:
 
 Use `@sanity-labs/sdk-addon-dataset-runtime` for shared runtime config and `@sanity-labs/sdk-tasks`
 for task reads and task mutations.
-
-## Migration Notes
-
-Existing internal callers can migrate gradually:
-
-- `useAddonComments()` -> `useDocumentComments()`
-- `useTaskComments()` -> `useTaskComments()`
-- `useAddonCommentMutations()` -> `useApplyCommentActions()`
-- pure helper imports from `addonCommentUtils.ts` -> imports from `@sanity-labs/sdk-comments`
-
-## Repository Note
-
-This package currently lives in the repo folder
-[`packages/comments-sdk-react/`](.) but publishes as `@sanity-labs/sdk-comments`.
