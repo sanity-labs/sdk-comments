@@ -9,7 +9,7 @@ import type {
   CommentNotificationContext,
   CommentTarget,
   TaskCommentComposerArgs,
-} from './types'
+} from './types.js'
 
 export function buildStudioCommentUrl({
   commentId,

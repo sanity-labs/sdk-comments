@@ -3,12 +3,20 @@ import type {
   CommentMutationApi,
   CommentReaction,
   CommentStatus,
-} from './internal/core'
-import {useClient} from '@sanity/sdk-react'
+} from './internal/core/index.js'
 import {useCallback, useMemo} from 'react'
 
-import {buildSanityDocumentComment, buildSanityTaskComment} from './builders'
-import {requireRuntimeValue, useResolvedAddonRuntime} from './runtime'
+import {
+  createComment as createCommentAction,
+  createTaskComment as createTaskCommentAction,
+  deleteComment as deleteCommentAction,
+  editComment as editCommentAction,
+  setCommentStatus as setCommentStatusAction,
+  toggleReaction as toggleReactionAction,
+  type CommentAction,
+} from './actions.js'
+import {createCommentHandle} from './handles.js'
+import {requireRuntimeValue, useAddonMutationClient, useResolvedAddonRuntime} from './runtime.js'
 
 interface CreateDocumentCommentArgs {
   commentId?: string
@@ -44,6 +52,7 @@ interface UseApplyCommentActionsOptions {
 }
 
 interface ApplyCommentActionsApi extends CommentMutationApi {
+  (action: CommentAction | CommentAction[]): Promise<unknown>
   createComment: (args: CreateDocumentCommentArgs) => Promise<unknown>
   createTaskComment: (args: CreateTaskCommentArgs) => Promise<unknown>
 }
@@ -66,15 +75,56 @@ export function useApplyCommentActions({
       workspaceId: workspaceIdOverride,
       workspaceTitle: workspaceTitleOverride,
     })
-  const baseClient = useClient({apiVersion})
+  const mutationClient = useAddonMutationClient({
+    addonDataset,
+    apiVersion,
+    projectId,
+  })
 
-  const client = useMemo(
-    () =>
-      baseClient.withConfig({
-        dataset: requireRuntimeValue(addonDataset, 'Addon dataset'),
-        projectId: requireRuntimeValue(projectId, 'Project ID'),
-      }),
-    [addonDataset, baseClient, projectId],
+  const dispatch = useCallback(
+    async (actionOrActions: CommentAction | CommentAction[]) => {
+      const runtime = {
+        addonDataset,
+        contentDataset,
+        currentUserId: currentUserId ?? 'unknown',
+        projectId,
+        studioBaseUrl,
+        workspaceId,
+        workspaceTitle,
+      }
+
+      console.debug('[sdk-comments/useApplyCommentActions] dispatch:start', {
+        actions: Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions],
+        runtime,
+      })
+
+      try {
+        const result = await mutationClient.execute(actionOrActions)
+        console.debug('[sdk-comments/useApplyCommentActions] dispatch:success', {
+          actions: Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions],
+          result,
+          runtime,
+        })
+        return result
+      } catch (error) {
+        console.error('[sdk-comments/useApplyCommentActions] dispatch:failed', {
+          actions: Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions],
+          error,
+          runtime,
+        })
+        throw error
+      }
+    },
+    [
+      addonDataset,
+      contentDataset,
+      currentUserId,
+      mutationClient,
+      projectId,
+      studioBaseUrl,
+      workspaceId,
+      workspaceTitle,
+    ],
   )
 
   const createComment = useCallback(
@@ -92,33 +142,40 @@ export function useApplyCommentActions({
         throw new Error('Addon content dataset is not configured')
       }
 
-      const resolvedProjectId = requireRuntimeValue(projectId, 'Project ID')
-      const authorId = currentUserId ?? 'unknown'
-      const comment = buildSanityDocumentComment({
-        authorId,
-        commentId,
-        contentDataset,
-        documentId,
-        documentTitle,
-        documentType,
-        fieldPath,
-        message,
-        parentCommentId,
-        projectId: resolvedProjectId,
-        studioBaseUrl,
-        threadId,
-        workspaceId,
-        workspaceTitle,
+      const handle = createCommentHandle({
+        addonDataset: requireRuntimeValue(addonDataset, 'Addon dataset'),
+        commentId: commentId ?? crypto.randomUUID(),
+        projectId: requireRuntimeValue(projectId, 'Project ID'),
       })
 
-      try {
-        return await client.create(comment)
-      } catch (error) {
-        console.error('[useApplyCommentActions] createComment failed:', error)
-        throw error
-      }
+      return await dispatch(
+        createCommentAction(handle, {
+          authorId: currentUserId ?? 'unknown',
+          contentDataset: requireRuntimeValue(contentDataset, 'Content dataset'),
+          documentId,
+          documentTitle,
+          documentType,
+          fieldPath,
+          message,
+          parentCommentId,
+          projectId: requireRuntimeValue(projectId, 'Project ID'),
+          studioBaseUrl,
+          threadId,
+          workspaceId,
+          workspaceTitle,
+        }),
+      )
     },
-    [client, contentDataset, currentUserId, projectId, studioBaseUrl, workspaceId, workspaceTitle],
+    [
+      addonDataset,
+      contentDataset,
+      currentUserId,
+      dispatch,
+      projectId,
+      studioBaseUrl,
+      workspaceId,
+      workspaceTitle,
+    ],
   )
 
   const createTaskComment = useCallback(
@@ -132,111 +189,111 @@ export function useApplyCommentActions({
       taskTitle,
       threadId,
     }: CreateTaskCommentArgs) => {
-      const authorId = currentUserId ?? 'unknown'
-      const comment = buildSanityTaskComment({
-        authorId,
-        commentId,
-        message,
-        parentCommentId,
-        subscribers,
-        taskId,
-        taskStudioUrl,
-        taskTitle,
-        threadId,
-        workspaceId,
-        workspaceTitle,
+      const handle = createCommentHandle({
+        addonDataset: requireRuntimeValue(addonDataset, 'Addon dataset'),
+        commentId: commentId ?? crypto.randomUUID(),
+        projectId: requireRuntimeValue(projectId, 'Project ID'),
       })
 
-      try {
-        return await client.create(comment)
-      } catch (error) {
-        console.error('[useApplyCommentActions] createTaskComment failed:', error)
-        throw error
-      }
+      return await dispatch(
+        createTaskCommentAction(handle, {
+          authorId: currentUserId ?? 'unknown',
+          message,
+          parentCommentId,
+          subscribers,
+          taskId,
+          taskStudioUrl,
+          taskTitle,
+          threadId,
+          workspaceId,
+          workspaceTitle,
+        }),
+      )
     },
-    [client, currentUserId, workspaceId, workspaceTitle],
+    [addonDataset, currentUserId, dispatch, projectId, workspaceId, workspaceTitle],
   )
 
   const deleteComment = useCallback(
-    async (commentId: string) => {
-      try {
-        return await client.delete(commentId)
-      } catch (error) {
-        console.error(`[useApplyCommentActions] deleteComment failed (${commentId}):`, error)
-        throw error
-      }
-    },
-    [client],
+    async (commentId: string) =>
+      await dispatch(
+        deleteCommentAction(
+          createCommentHandle({
+            addonDataset: requireRuntimeValue(addonDataset, 'Addon dataset'),
+            commentId,
+            projectId: requireRuntimeValue(projectId, 'Project ID'),
+          }),
+        ),
+      ),
+    [addonDataset, dispatch, projectId],
   )
 
   const editComment = useCallback(
-    async (commentId: string, message: CommentMessage) => {
-      try {
-        return await client
-          .patch(commentId)
-          .set({lastEditedAt: new Date().toISOString(), message})
-          .commit()
-      } catch (error) {
-        console.error(`[useApplyCommentActions] editComment failed (${commentId}):`, error)
-        throw error
-      }
-    },
-    [client],
+    async (commentId: string, message: CommentMessage) =>
+      await dispatch(
+        editCommentAction(
+          createCommentHandle({
+            addonDataset: requireRuntimeValue(addonDataset, 'Addon dataset'),
+            commentId,
+            projectId: requireRuntimeValue(projectId, 'Project ID'),
+          }),
+          message,
+        ),
+      ),
+    [addonDataset, dispatch, projectId],
   )
 
   const setCommentStatus = useCallback(
-    async (commentId: string, status: CommentStatus) => {
-      try {
-        return await client.patch(commentId).set({status}).commit()
-      } catch (error) {
-        console.error(`[useApplyCommentActions] setCommentStatus failed (${commentId}):`, error)
-        throw error
-      }
-    },
-    [client],
+    async (commentId: string, status: CommentStatus) =>
+      await dispatch(
+        setCommentStatusAction(
+          createCommentHandle({
+            addonDataset: requireRuntimeValue(addonDataset, 'Addon dataset'),
+            commentId,
+            projectId: requireRuntimeValue(projectId, 'Project ID'),
+          }),
+          status,
+        ),
+      ),
+    [addonDataset, dispatch, projectId],
   )
 
   const toggleReaction = useCallback(
-    async (commentId: string, shortName: string, currentReactions: CommentReaction[]) => {
-      const userId = currentUserId ?? 'unknown'
-      const existing = currentReactions.find(
-        (reaction) => reaction.shortName === shortName && reaction.userId === userId,
-      )
-
-      try {
-        if (existing) {
-          return await client
-            .patch(commentId)
-            .unset([`reactions[_key=="${existing._key}"]`])
-            .commit()
-        }
-
-        const reaction: CommentReaction = {
-          _key: crypto.randomUUID().replace(/-/g, '').slice(0, 12),
-          addedAt: new Date().toISOString(),
-          shortName,
-          userId,
-        }
-
-        return await client
-          .patch(commentId)
-          .setIfMissing({reactions: []})
-          .append('reactions', [reaction])
-          .commit()
-      } catch (error) {
-        console.error(`[useApplyCommentActions] toggleReaction failed (${commentId}):`, error)
-        throw error
-      }
-    },
-    [client, currentUserId],
+    async (commentId: string, shortName: string, currentReactions: CommentReaction[]) =>
+      await dispatch(
+        toggleReactionAction(
+          createCommentHandle({
+            addonDataset: requireRuntimeValue(addonDataset, 'Addon dataset'),
+            commentId,
+            projectId: requireRuntimeValue(projectId, 'Project ID'),
+          }),
+          {
+            currentReactions,
+            currentUserId: currentUserId ?? 'unknown',
+            shortName,
+          },
+        ),
+      ),
+    [addonDataset, currentUserId, dispatch, projectId],
   )
 
-  return {
-    createComment,
-    createTaskComment,
-    deleteComment,
-    editComment,
-    setCommentStatus,
-    toggleReaction,
-  }
+  return useMemo(
+    () =>
+      Object.assign(dispatch, {
+        createComment,
+        createTaskComment,
+        deleteComment,
+        editComment,
+        setCommentStatus,
+        toggleReaction,
+      }),
+    [
+      createComment,
+      createTaskComment,
+      deleteComment,
+      dispatch,
+      editComment,
+      setCommentStatus,
+      toggleReaction,
+    ],
+  ) as ApplyCommentActionsApi
 }

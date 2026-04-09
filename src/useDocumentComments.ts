@@ -1,9 +1,9 @@
-import type {CommentsState} from './internal/core'
+import type {CommentsState} from './internal/core/index.js'
 
-import {COMMENTS_BY_DOCUMENT_QUERY} from './queries'
-import {requireRuntimeValue, useResolvedAddonRuntime} from './runtime'
-import {useCommentsState} from './useCommentsState'
-import {useSanityCommentsQuery} from './useSanityCommentsQuery'
+import {COMMENTS_BY_DOCUMENT_QUERY} from './queries.js'
+import {requireRuntimeValue, useResolvedAddonRuntime} from './runtime.js'
+import {useCommentsState} from './useCommentsState.js'
+import {useSanityCommentsQuery} from './useSanityCommentsQuery.js'
 
 interface UseDocumentCommentsArgs {
   documentId: string

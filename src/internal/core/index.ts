@@ -6,14 +6,14 @@ export {
   buildStudioCommentUrl,
   buildTaskCommentDocument,
   buildTaskStudioUrl,
-} from './builders'
+} from './builders.js'
 export {
   buildCommentThreads,
   getCommentThreadField,
   getCommentThreadsForField,
   groupUnresolvedCommentsByField,
   toPlainText,
-} from './threads'
+} from './threads.js'
 export type {
   BuildCommentDocumentArgs,
   BuildCommentNotificationContextArgs,
@@ -36,4 +36,4 @@ export type {
   CrossDatasetReference,
   Reference,
   TaskCommentComposerArgs,
-} from './types'
+} from './types.js'

@@ -112,9 +112,25 @@ Sanity user plus the project user memberships exposed by `useUsers()`.
 
 ## Primary Exports
 
+- `createCommentHandle()`
+- `createComment()`
+- `createTaskComment()`
+- `editComment()`
+- `setCommentStatus()`
+- `deleteComment()`
+- `toggleReaction()`
+- `CommentAction`
+- `CreateCommentActionArgs`
+- `CreateTaskCommentActionArgs`
+- `useComments()`
+- `useCommentProjection()`
+- `useComment()`
+- `useCommentThread()`
+- `useEditComment()`
 - `useDocumentComments()`
 - `useTaskComments()`
 - `useApplyCommentActions()`
+- `CommentHandle`
 - `CommentDocument`
 - `CommentMessage`
 - `CommentReaction`
@@ -127,9 +143,80 @@ Sanity user plus the project user memberships exposed by `useUsers()`.
 - `buildMessageFromPlainText()`
 - `toPlainText()`
 
+## Canonical Read Hooks
+
+The preferred SDK-shaped read path is:
+
+- `useComments()` for lightweight root-comment handles
+- `useCommentProjection()` for thread preview metadata
+- `useComment()` for one root comment document
+- `useCommentThread()` for the full thread when the UI expands it
+- `useEditComment()` for scoped message editing
+
+`useDocumentComments()` and `useTaskComments()` remain available as compatibility helpers for existing thread-first UIs.
+
+## Scoped Edit Hooks
+
+`useEditComment()` mirrors the SDK edit-hook ergonomics for comment documents
+while keeping comment writes scoped to the addon dataset.
+
+```ts
+import {
+  buildMessageFromPlainText,
+  type CommentMessage,
+  useEditComment,
+} from '@sanity-labs/sdk-comments'
+
+const editCommentMessage = useEditComment<CommentMessage>({
+  commentId: 'comment-123',
+  path: 'message',
+})
+
+await editCommentMessage(buildMessageFromPlainText('Updated message'))
+```
+
+Omit `path` to edit the full comment document. The hook diffs top-level comment
+fields, ignores system keys such as `_id` / `_updatedAt`, stamps
+`lastEditedAt`, and unsets the targeted path if you pass `undefined`.
+
 ## Action API
 
-`useApplyCommentActions()` returns the comment-domain write API:
+`useApplyCommentActions()` returns a callable dispatcher, analogous to
+`useApplyDocumentActions()` in `@sanity/sdk-react`, with the existing
+imperative helpers attached for convenience and migration.
+
+Canonical usage:
+
+```ts
+import {
+  createComment,
+  createCommentHandle,
+  useApplyCommentActions,
+} from '@sanity-labs/sdk-comments'
+
+const applyCommentActions = useApplyCommentActions()
+
+await applyCommentActions(
+  createComment(
+    createCommentHandle({
+      addonDataset: 'production-comments',
+      commentId: crypto.randomUUID(),
+      projectId: 'myProjectId',
+    }),
+    {
+      authorId: 'resource-user-1',
+      contentDataset: 'production',
+      documentId: 'article-123',
+      documentTitle: 'Homepage headline',
+      documentType: 'article',
+      message: buildMessageFromPlainText('Looks good to me'),
+      projectId: 'myProjectId',
+    },
+  ),
+)
+```
+
+For migration, the hook still exposes the existing imperative helpers:
 
 - `createComment(args)` for document-scoped comments
 - `createTaskComment(args)` for task-scoped comments
@@ -137,6 +224,19 @@ Sanity user plus the project user memberships exposed by `useUsers()`.
 - `setCommentStatus(commentId, status)`
 - `deleteComment(commentId)`
 - `toggleReaction(commentId, shortName, currentReactions)`
+
+The dispatcher accepts either one action or an array of actions. The attached
+helper methods build the action descriptors for you and then dispatch them.
+
+## SDK Alignment
+
+This package intentionally keeps the same root-handle, projection, thread,
+dispatcher, and edit-hook shape as the Sanity SDK. Under the hood, comment
+writes execute direct live-edit client mutations instead of the SDK draft
+document action pipeline, because comments live in the addon dataset as
+live-edit records rather than draftable content documents. That keeps the
+public API SDK-shaped while making comment persistence correct for addon
+documents.
 
 Task comments are intentionally part of the comments package. If the thing being
 created or updated is a comment, including a comment attached to a task, use

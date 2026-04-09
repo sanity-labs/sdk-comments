@@ -4,7 +4,7 @@ import {
   buildCommentTarget,
   buildStudioCommentUrl,
   buildTaskCommentDocument,
-} from './internal/core'
+} from './internal/core/index.js'
 
 interface BuildSanityDocumentCommentArgs {
   authorId: string

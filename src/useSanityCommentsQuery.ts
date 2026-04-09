@@ -1,4 +1,4 @@
-import type {CommentDocument} from './internal/core'
+import type {CommentDocument} from './internal/core/index.js'
 import {useQuery} from '@sanity/sdk-react'
 
 interface UseSanityCommentsQueryArgs {

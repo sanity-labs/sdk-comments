@@ -5,7 +5,7 @@ import type {
   CommentsState,
   CommentMessage,
   CommentStatus,
-} from './internal/core'
+} from './internal/core/index.js'
 import {useCallback, useEffect, useMemo, useState} from 'react'
 
 interface UseCommentsStateOptions {

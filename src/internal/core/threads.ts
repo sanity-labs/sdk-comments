@@ -1,4 +1,9 @@
-import type {CommentDocument, CommentMessage, CommentThread, CommentThreadGroup} from './types'
+import type {
+  CommentDocument,
+  CommentMessage,
+  CommentThread,
+  CommentThreadGroup,
+} from './types.js'
 
 interface GetCommentThreadsForFieldOptions {
   field: string

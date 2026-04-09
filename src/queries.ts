@@ -38,3 +38,23 @@ export const TASK_COMMENTS_QUERY = `*[
   context,
   target
 } | order(_createdAt asc)`
+
+export const COMMENTS_BY_THREAD_QUERY = `*[
+  _type == "comment"
+  && threadId == $threadId
+]{
+  _id,
+  _type,
+  _createdAt,
+  _updatedAt,
+  authorId,
+  message,
+  status,
+  threadId,
+  parentCommentId,
+  lastEditedAt,
+  reactions,
+  subscribers,
+  context,
+  target
+} | order(_createdAt asc)`
